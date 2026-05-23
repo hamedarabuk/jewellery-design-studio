@@ -114,6 +114,22 @@ Per approved piece (front + on-model + 1-2 iterations):
 
 Per-session soft cap: $10 of render charges. The skill flags when you approach this.
 
+## AI metadata stripping (no "Made with AI" badges)
+
+Every image written by `gpt_image_client.py` runs through `scripts/lib/image_io.py:strip_metadata` immediately after generation. The strip rebuilds the image from raw pixel data into a fresh Pillow Image, guaranteeing that no ancillary chunks (C2PA, ContentCredentials, XMP, EXIF, OpenAI / gpt-image-2 software tags) survive.
+
+This matters because LinkedIn, Instagram, X, and other social platforms read these tags and display a visible "Made with AI" badge on posts that carry them. Stripping is automatic and unconditional in this skill.
+
+Note: SynthID is a pixel-level watermark embedded by Google's image models (Gemini, Imagen, Nano Banana) into the actual image pixels. It cannot be removed by metadata stripping and is left intact. OpenAI's gpt-image-2 does not embed SynthID, so renders from this skill's default generator are clean.
+
+**Verify any image yourself:**
+
+```
+python scripts/design_workflow.py verify-clean --path brands/<brand>/approved/<NN>-<slug>/render-front.png
+```
+
+Exit code 0 if clean, 1 if any AI-generator signature is still present. Pass `--json` for a structured report.
+
 ## How to customise
 
 Edit `brands/<brand-slug>/foundation.md` directly to refine your brand voice. The `design-from-reference` skill reads it on every invocation, so changes take effect immediately.

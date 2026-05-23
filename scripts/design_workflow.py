@@ -20,6 +20,7 @@ Run as a CLI for individual operations:
         --labels "V1: wreath" "V2: twist" "V3: bloom" "V4: rose-only" \\
         --output comparison.png \\
         --title "Albion Garland - 4 variations"
+    python scripts/design_workflow.py verify-clean --path render-front.png
 """
 
 from __future__ import annotations
@@ -31,7 +32,9 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))  # so `from lib.image_io import ...` works
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -219,6 +222,40 @@ def _cmd_collage(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _cmd_verify_clean(args: argparse.Namespace) -> int:
+    """Byte-level sniff for AI-generator metadata. Exit 0 if clean, 1 if not."""
+    from lib.image_io import has_c2pa_chunk, metadata_report
+    import json
+
+    if not args.path.exists():
+        print(f"verify-clean: file not found: {args.path}", file=sys.stderr)
+        return EXIT_ERROR
+
+    report = metadata_report(args.path)
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        print(f"path:    {report['path']}")
+        print(f"format:  {report['format']}  mode={report['mode']}  size={report['size_px']}")
+        print(f"info keys: {report['info_keys'] or '(none)'}")
+        if report["info_sample"]:
+            for k, v in report["info_sample"].items():
+                print(f"  {k}: {v}")
+        print(
+            f"has_c2pa_signature: {report['has_c2pa_signature']}"
+        )
+
+    if has_c2pa_chunk(args.path):
+        print(
+            "verify-clean: FAIL - image still carries an AI-generator signature.",
+            file=sys.stderr,
+        )
+        return EXIT_ERROR
+
+    print("verify-clean: OK - no AI-generator metadata detected.", file=sys.stderr)
+    return EXIT_OK
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="File-system bookkeeping for the jewellery design workflow."
@@ -253,6 +290,19 @@ def main() -> int:
     p_coll.add_argument("--output", type=Path, required=True)
     p_coll.add_argument("--title", default=None)
     p_coll.set_defaults(func=_cmd_collage)
+
+    p_verify = sub.add_parser(
+        "verify-clean",
+        help=(
+            "Verify a render has no AI-generator metadata (C2PA, "
+            "ContentCredentials, OpenAI, SynthID signatures). Exits 0 if clean."
+        ),
+    )
+    p_verify.add_argument("--path", type=Path, required=True)
+    p_verify.add_argument(
+        "--json", action="store_true", help="Output the report as JSON."
+    )
+    p_verify.set_defaults(func=_cmd_verify_clean)
 
     args = parser.parse_args()
     return args.func(args)

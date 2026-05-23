@@ -183,7 +183,7 @@ If the user requests a cheaper iteration:
 - British English by default (override per brand foundation if the brand voice is non-British).
 - No em-dashes anywhere. Use period, comma, colon, or parentheses.
 - Banned phrases: "elevate, leverage, in today's, delve, navigate the landscape, synergy, unlock, curate, journey (as a noun)".
-- All renders run through metadata strip (handled automatically by `gpt_image_client.py`).
+- All renders run through metadata strip automatically. `gpt_image_client.py` calls `scripts/lib/image_io.py:strip_metadata` after every successful generation. C2PA, ContentCredentials, OpenAI / gpt-image-2 software tags, and XMP/EXIF chunks are all removed so the renders carry no "Made with AI" signal on social platforms. SynthID pixel watermarks (Google models only) cannot be removed and are left intact; gpt-image-2 does not embed SynthID. Users can self-verify any render via `python scripts/design_workflow.py verify-clean --path <render>` (exit 0 = clean).
 - The "what makes this not a [Brand] copy" section in brief.md is mandatory. Refuse to render if it is empty or generic.
 - Stone palette must match the brand foundation. If a reference image includes a banned stone (e.g. turquoise in a reference but the foundation forbids it), automatically substitute with an allowed equivalent and call out the substitution in `reference.md`.
 - Naming must respect the foundation. Refuse names from the foundation's forbidden-naming-patterns list.

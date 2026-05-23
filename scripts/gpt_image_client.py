@@ -54,12 +54,13 @@ from __future__ import annotations
 
 import argparse
 import base64
-import io
 import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))  # so `from lib.image_io import ...` works
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -122,30 +123,34 @@ def _validate_size(size: str) -> tuple[bool, str]:
 
 
 def _strip_metadata(path: Path) -> None:
-    """Re-save the image without metadata (strips C2PA, EXIF, XMP).
+    """Strip C2PA / EXIF / XMP metadata from a generated image.
 
-    AI-generated images often carry C2PA content credentials that trigger
-    'made with AI' badges on social platforms. Stripping them is best-practice
-    before publishing. SynthID pixel watermarks cannot be removed and are left
-    intact.
+    Delegates to scripts.lib.image_io.strip_metadata, which uses the
+    bulletproof "putdata into fresh Image" approach to guarantee no
+    ancillary chunks survive. See lib/image_io.py for the details.
+
+    SynthID pixel watermarks cannot be removed and are left intact.
     """
     try:
-        from PIL import Image
-    except ImportError:
+        from lib.image_io import strip_metadata, has_c2pa_chunk
+    except ImportError as e:
         print(
-            "gpt_image: Pillow not installed; skipping metadata strip. "
-            "Run: pip install Pillow",
+            f"gpt_image: warning - could not import strip_metadata: {e}. "
+            "Generated image still has AI-generator metadata.",
             file=sys.stderr,
         )
         return
 
     try:
-        img = Image.open(path)
-        # Save to a buffer then back to disk to discard all metadata.
-        buf = io.BytesIO()
-        save_format = (img.format or "PNG").upper()
-        img.save(buf, format=save_format)
-        path.write_bytes(buf.getvalue())
+        strip_metadata(path)
+        # Post-strip verification: byte-level sniff. If any signature survives,
+        # warn loudly so the user knows.
+        if has_c2pa_chunk(path):
+            print(
+                f"gpt_image: WARNING - {path} still carries an AI-generator "
+                "signature after strip. Manual review needed.",
+                file=sys.stderr,
+            )
     except Exception as e:
         print(f"gpt_image: warning - metadata strip failed: {e}", file=sys.stderr)
 
