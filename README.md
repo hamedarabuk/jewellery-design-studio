@@ -130,6 +130,59 @@ python scripts/design_workflow.py verify-clean --path brands/<brand>/approved/<N
 
 Exit code 0 if clean, 1 if any AI-generator signature is still present. Pass `--json` for a structured report.
 
+## Telegram approval (optional)
+
+Without Telegram the workflow still runs: renders are saved to disk and you review them via file explorer, approving in the Claude Code chat. With Telegram every render lands in your phone with three one-tap buttons: **Approve**, **Iterate**, **Reject**.
+
+### Two-minute setup
+
+1. Message `@BotFather` on Telegram. Send `/newbot` and follow the prompts. Copy the bot token it gives you (format `123456789:ABCdef...`).
+2. Start a chat with your new bot by searching for its username and sending `/start`.
+3. Visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` in your browser. Find your chat id in the JSON (`result[0].message.chat.id`).
+4. Add both values to your `.env`:
+
+```
+TELEGRAM_BOT_TOKEN=123456789:ABCdef...
+TELEGRAM_CHAT_ID=749526661
+```
+
+> **Hard warning: use a dedicated bot token.** Telegram `getUpdates` can be consumed by only one process at a time. If you reuse a bot token already polled by another service (for example an existing notification bot or another skill poller), that service will consume the approval callbacks and the studio's poller will time out silently. Create a new bot in BotFather specifically for the studio.
+
+### Manual test
+
+Send a render manually, then start the poller in a second terminal:
+
+```bash
+# Terminal 1: send
+python scripts/telegram_approval.py send \
+  --piece brands/my-brand/proposed/albion-garland \
+  --image brands/my-brand/proposed/albion-garland/render-v1-tg.jpg \
+  --caption "Test send from jewellery-design-studio"
+
+# Terminal 2: poll (run immediately after; 60-second timeout for a quick test)
+python scripts/telegram_approval.py poll \
+  --piece brands/my-brand/proposed/albion-garland \
+  --timeout 60
+```
+
+Tap a button in Telegram. The poller prints the verdict JSON and exits.
+
+### Dry run (no API call)
+
+Verify the payload shape and keyboard layout without touching the API:
+
+```bash
+python scripts/telegram_approval.py send \
+  --piece brands/my-brand/proposed/albion-garland \
+  --image brands/my-brand/proposed/albion-garland/render-v1-tg.jpg \
+  --caption "Dry run test" \
+  --dry-run
+```
+
+The printed JSON shows the `inline_keyboard` array with three buttons and the `jds:<action>:<id>` callback_data shape.
+
+---
+
 ## How to customise
 
 Edit `brands/<brand-slug>/foundation.md` directly to refine your brand voice. The `design-from-reference` skill reads it on every invocation, so changes take effect immediately.

@@ -85,29 +85,44 @@ Build a Telegram-friendly JPEG preview at `<piece_slug>/render-v1-tg.jpg` via `p
 
 ### 6. Send for review
 
-If Telegram is configured (TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID in `.env`), send the preview to Telegram with a structured caption:
+If Telegram is configured (TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID in `.env`), run:
 
 ```
-PROPOSED: <Piece Name> (<tier>, £<retail>, <lead time>)
+python scripts/telegram_approval.py send \
+  --piece brands/<brand_slug>/proposed/<piece_slug> \
+  --image brands/<brand_slug>/proposed/<piece_slug>/render-v1-tg.jpg \
+  --caption "PROPOSED: <Piece Name> (<tier>, £<retail>, <lead time>)
 
-Inspired by <reference brand piece if known>. I kept: <2-3 DNA points>.
+Inspired by <reference brand/piece if known>. I kept: <2-3 DNA points>.
 I changed: <2-3 transformation points>.
 
-Approve, iterate, or render variations?
+Reply with iteration notes after tapping Iterate."
 ```
 
-If Telegram is not configured, print the path to the file and prompt the user via the chat session.
+Capture the last line of stdout as `approval_id` (e.g. `jds-a1b2c3d4`). This is written to `approval.json` inside the piece folder.
+
+If Telegram is not configured, print the file path and prompt the user via the chat session; skip the poll step.
 
 ### 7. Iteration loop
 
-Listen for the user's response:
+Run the poller immediately after step 6 (up to 30-minute default window):
 
-- **"Approve"** (with or without notes): proceed to step 8.
-- **"Iterate"** with specific notes (e.g. "make the rose smaller", "both feet on the branch", "rose gold chain instead"): re-render via gpt-image-2 edit using the current render as `--reference` and the change as a tight prompt addendum. Save as `render-v2-<short-note>.png`. Loop back to step 6.
-- **"Render variations"** of a specific axis (chain colour, pose, framing): produce 2-4 variation renders, then build a 2x2 collage via `python scripts/design_workflow.py collage --inputs ... --labels ... --output comparison.png`. Send the collage and ask the user to pick. On pick, that variation becomes the current render.
-- **"Reject and start over"**: archive the current proposed folder to `proposed/<piece_slug>.rejected-<timestamp>/` and ask the user for a new reference image or new direction.
+```
+python scripts/telegram_approval.py poll \
+  --piece brands/<brand_slug>/proposed/<piece_slug> \
+  --timeout 1800
+```
 
-Up to 5 iterations per piece is the soft cap. If iteration count exceeds this, ask the user whether to keep going or pause.
+Parse the JSON printed to stdout and branch on `verdict`:
+
+- **`approve`**: proceed to step 8.
+- **`iterate`**: use `notes` (the user's Telegram text reply) as a change addendum. Re-render via gpt-image-2 edit using the current render as `--reference`. Save as `render-v<N+1>-<short-note>.png`. Build a fresh JPEG preview, then loop back to step 6.
+- **`reject`**: archive the proposed folder to `proposed/<piece_slug>.rejected-<ISO-timestamp>/` and ask the user for a new reference image or new direction.
+- **`timeout`**: prompt the user in chat: "I did not hear back on Telegram within 30 minutes. Approve, iterate, or reject?"
+
+For "Render variations" requests (user asks for 2-4 options on a single axis), produce variation renders, build a 2x2 collage via `python scripts/design_workflow.py collage`, send the collage image via `telegram_approval.py send`, and ask the user to pick. On pick, that variation becomes the current render; loop back to step 6.
+
+Up to 5 iterations per piece is the soft cap. If the iteration count exceeds this, ask the user whether to continue or pause.
 
 ### 8. Graduate to approved
 
@@ -134,6 +149,10 @@ When the user approves:
 Approved set is now `nn` pieces. Tell the user: "<Piece Name> locked at position <nn>. Send the next reference image when ready."
 
 ## File conventions
+
+### Telegram configuration
+
+Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`. See the README's "Telegram approval (optional)" section for the two-minute setup walkthrough. Use a dedicated bot token for the studio: the poller consumes `getUpdates` exclusively and will conflict with any other bot service sharing the same token.
 
 Each proposed piece folder:
 
