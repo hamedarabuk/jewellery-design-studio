@@ -1,0 +1,139 @@
+# Jewellery Design Studio
+
+A Claude Code skill repository for fine and high jewellery designers. Send a reference image from a luxury house (Harry Winston, Boucheron, Cartier, Tiffany, Graff), and Claude produces an original, IP-safe derived design in your brand's voice. Renders, brief, approval workflow, all in one folder per piece.
+
+Built on the same pattern as [youtube-channel-studio](https://github.com/hamedarabuk/youtube-channel-studio): a public template + per-brand foundation gitignored so your personal brand data never ships in the public repo.
+
+## What you get
+
+Two skills:
+
+1. **`brand-init`** - a one-time interview that captures your brand identity (palette, motifs, naming conventions, IP rules). Writes `brands/<brand-slug>/foundation.md`. Run once per brand.
+
+2. **`design-from-reference`** - the workhorse. Send a reference image, get a derived piece with reference DNA analysis, design brief, hero render via gpt-image-2, iteration loop, approval, and on-model render. Files land at `brands/<brand-slug>/proposed/<piece-slug>/` and graduate to `brands/<brand-slug>/approved/<NN>-<piece-slug>/` on approval.
+
+The IP-safe transformation rule is enforced at brief-writing time: every derived piece must change motif content + framing device + cultural anchor relative to its reference. The richness level (pavé density, multi-cut arrangement, mixed-metal palette) is preserved. The "would this be confused with the reference" check has to be answered explicitly.
+
+## Install
+
+```bash
+# Clone the repo
+git clone https://github.com/<your-username>/jewellery-design-studio.git
+cd jewellery-design-studio
+
+# Set up Python (3.11+)
+python -m venv .venv
+.venv\Scripts\activate            # Windows
+# or: source .venv/bin/activate    # macOS / Linux
+
+pip install -r requirements.txt
+
+# Set your API keys
+cp .env.example .env
+# Edit .env: add OPENAI_API_KEY (required) and Telegram bot token (optional)
+```
+
+You need an OpenAI API key for gpt-image-2: https://platform.openai.com/api-keys
+
+Telegram is optional. Without it, renders are saved to disk and you review them via file explorer. With it, every render is delivered to your Telegram chat with a captioned approval prompt. To set up: message `@BotFather`, create a bot, get the token; then message your new bot once and read your chat id from `https://api.telegram.org/bot<TOKEN>/getUpdates`.
+
+## First-run walkthrough
+
+Open the repo in Claude Code. Then:
+
+### 1. Set up your brand foundation (one-time per brand)
+
+```
+> invoke the brand-init skill, brand slug "my-brand-2026"
+```
+
+Claude conducts a short interview: designer identity, partner brand (if licensing), catalogue tiers, design language, stone palette (allowed and banned), metal palette, naming convention, cultural anchor, IP-safe transformation rule, render defaults.
+
+When the interview is done, `brands/my-brand-2026/foundation.md` is your durable brand identity. You never re-supply this information.
+
+### 2. Design a piece from a reference
+
+```
+> design from this reference [attach reference image]
+  brand=my-brand-2026, tier=high-jewellery
+```
+
+The skill:
+
+1. Saves the reference to `brands/my-brand-2026/proposed/<slug>/reference-source.png`.
+2. Writes `reference.md` with a DNA analysis (what makes the reference expensive; what to take; what to change).
+3. Writes `brief.md` with the derived piece (name, design intent, materials, retail, lead time, "what makes this not a clone" section).
+4. Renders the front view via gpt-image-2 high quality at 1536x2048.
+5. Sends a Telegram preview (or prints the file path) and asks for approval.
+
+### 3. Iterate or approve
+
+You can:
+
+- **Approve as-is**: skill graduates the piece to `approved/<NN>-<slug>/` and renders the on-model shot at 2400x3200 using the front render as a consistency reference. Updates `approved/INDEX.md`.
+- **Iterate with notes**: "make the central rose smaller", "both feet on the branch", "white chain not yellow". The skill re-renders via gpt-image-2 edit using the current render as reference.
+- **Render variations**: useful when there is a binary choice (chain colour, pose, framing). The skill produces 2-4 variations and builds a 2x2 collage so you can pick.
+- **Reject and start over**: the proposed folder is archived; you can send a new reference image.
+
+### 4. Send the next reference
+
+Once a piece is approved, send the next reference image. The skill writes the next position number into `approved/INDEX.md` automatically.
+
+## File layout per brand
+
+```
+brands/<brand-slug>/
+├── foundation.md                       # your brand identity (gitignored)
+├── proposed/                           # iteration working folder
+│   └── <piece-slug>/
+│       ├── reference-source.png        # the reference you sent
+│       ├── reference.md                # DNA analysis
+│       ├── brief.md                    # proposed design
+│       ├── render-v1.png               # first iteration
+│       ├── render-v1-tg.jpg            # Telegram preview
+│       ├── render-v2-<note>.png        # subsequent iterations
+│       └── comparison-collage.png      # if variations were rendered
+└── approved/
+    ├── INDEX.md                        # ordered table of locked pieces
+    └── <NN>-<piece-slug>/
+        ├── reference.md
+        ├── brief.md                    # status=APPROVED
+        ├── manifest.json
+        ├── render-front.png            # locked hero
+        ├── render-on-model.png         # editorial portrait
+        └── render-on-model-tg.jpg
+```
+
+## Cost expectations
+
+Per approved piece (front + on-model + 1-2 iterations):
+
+- gpt-image-2 high quality at 1536x2048: ~$0.50 - $1.00 per render
+- On-model at 2400x3200: ~$1 - $2
+- Typical total per approved piece: **$2 - $4**
+
+Per-session soft cap: $10 of render charges. The skill flags when you approach this.
+
+## How to customise
+
+Edit `brands/<brand-slug>/foundation.md` directly to refine your brand voice. The `design-from-reference` skill reads it on every invocation, so changes take effect immediately.
+
+Edit `.claude/skills/design-from-reference/SKILL.md` to adjust the workflow (render sizes, iteration cap, Telegram caption format). Edits stay local to your clone; you can fork the repo and share your variant.
+
+## Licensing the studio for your students or team
+
+The repo is MIT-licensed. You can:
+
+- Fork it for your own students or workshop participants.
+- Add your own custom skills (e.g. for studio quoting, GIA certificate generation, supplier price lookup).
+- Pre-populate brand foundations for your students so they start from a working example.
+
+## What this skill is NOT
+
+- It is not a CAD program. It produces editorial renders, not Rhino or MatrixGold files. Use it for pitch artefacts, catalogue images, and design exploration. Bring renders to your CAD jeweller separately.
+- It is not a copy machine. The IP-safe transformation rule is the heart of the tool. Pieces that fail the "would this be confused with the reference" check are refused.
+- It is not a customer-facing site. The `approved/` folder is your input. A separate microsite or catalogue tool reads `approved/INDEX.md` and `manifest.json` to build the customer-facing artefact.
+
+## Acknowledgements
+
+Pattern inspired by [youtube-channel-studio](https://github.com/hamedarabuk/youtube-channel-studio). Born out of the Mappin & Webb Collection 01 pitch (Hamed Arab Choobdar, independent designer, 2026).

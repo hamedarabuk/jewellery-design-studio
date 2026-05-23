@@ -1,0 +1,47 @@
+# Per-brand foundations and generated work stay private.
+# Each user should keep their own brand data out of the public repo.
+brands/
+
+# Environment secrets.
+.env
+.env.local
+.env.*.local
+
+# Python.
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated media outputs (per-piece renders, previews, collages).
+# These should live inside brands/ which is already ignored, but
+# this catches any stray output if a user runs scripts from the repo root.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.tiff
+*.tif
+# Exception: keep any template / documentation images.
+!templates/**/*.png
+!templates/**/*.jpg
+!docs/**/*.png
+
+# OS noise.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor noise.
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

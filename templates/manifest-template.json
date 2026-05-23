@@ -1,0 +1,34 @@
+{
+  "slug": "<NN>-<piece-slug>",
+  "order": 0,
+  "name": "<Piece Name>",
+  "category": "<Necklace | Ring | Pendant | Earrings | Brooch | Bracelet>",
+  "tier": "<High Jewellery | Commercial / Signature>",
+  "retail_gbp_ex_vat": 0,
+  "lead_time": "<N weeks>",
+  "dimensions": "<short string describing physical dimensions>",
+  "materials": "<one-line materials summary; metal palette, total carats, hallmark>",
+  "designer_note": "<one-paragraph designer note from the brief, for catalogue display>",
+  "renders": {
+    "front": "render-front.png",
+    "on_model": "render-on-model.png"
+  },
+  "inspired_by": {
+    "brand": "<Reference brand if known>",
+    "piece": "<Reference piece name if known>",
+    "product_reference": "<vendor SKU or reference number if known>",
+    "url": "<url to reference if known>",
+    "notes": "<short note on provenance, e.g. supplied by user>"
+  },
+  "approved_at": "YYYY-MM-DD",
+  "locked_variations": [
+    "<e.g. Format: pendant locked, brooch dropped>",
+    "<e.g. Chain: white gold locked over yellow>",
+    "<e.g. Scale: half-size locked>"
+  ],
+  "considered_variations": [
+    "<e.g. v1 brooch (rejected for manufacturability)>",
+    "<e.g. render-pendant-v1 yellow chain (rejected)>"
+  ],
+  "generator": "gpt-image-2 high quality"
+}
