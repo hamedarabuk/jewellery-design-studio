@@ -134,10 +134,45 @@ Exit code 0 if clean, 1 if any AI-generator signature is still present. Pass `--
 
 Without Telegram the workflow still runs: renders are saved to disk and you review them via file explorer, approving in the Claude Code chat. With Telegram every render lands in your phone with three one-tap buttons: **Approve**, **Iterate**, **Reject**.
 
-### Two-minute setup
+> **Hard warning: use a dedicated bot token.** Telegram `getUpdates` is single-consumer. If you reuse a token already polled by another service (an existing notification bot, another skill poller, etc.), that service will consume the approval callbacks and the studio poller will time out silently. Create a fresh bot in BotFather specifically for this studio.
 
-1. Message `@BotFather` on Telegram. Send `/newbot` and follow the prompts. Copy the bot token it gives you (format `123456789:ABCdef...`).
-2. Start a chat with your new bot by searching for its username and sending `/start`.
+### Setup wizard (recommended)
+
+Run the interactive wizard. It walks you through BotFather, validates your token, detects your chat id automatically, and writes both values to `.env` in one step:
+
+```bash
+python scripts/telegram_setup.py
+```
+
+The wizard backs up your existing `.env` before making changes, and sends a confirmation message to your chat when done. Run it again any time to reconfigure.
+
+To verify your setup later without re-running the full wizard:
+
+```bash
+python scripts/telegram_setup.py --check
+```
+
+Exit code 0 means the token is valid and the studio can reach your chat.
+
+### Verify the approval-flow wiring
+
+After setup, confirm that the approval keyboard is wired correctly with a dry run (no API call, no image needed):
+
+```bash
+python scripts/telegram_approval.py send \
+  --piece brands/my-brand/proposed/albion-garland \
+  --image brands/my-brand/proposed/albion-garland/render-v1-tg.jpg \
+  --caption "Dry run test" \
+  --dry-run
+```
+
+The printed JSON shows the `inline_keyboard` array with three buttons and the `jds:<action>:<id>` callback_data shape.
+
+<details>
+<summary>Manual setup (alternative to the wizard)</summary>
+
+1. Message `@BotFather` on Telegram. Send `/newbot` and follow the prompts. Copy the bot token (format `123456789:ABCdef...`).
+2. Start a chat with your new bot by searching for its username and sending any message.
 3. Visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` in your browser. Find your chat id in the JSON (`result[0].message.chat.id`).
 4. Add both values to your `.env`:
 
@@ -146,11 +181,11 @@ TELEGRAM_BOT_TOKEN=123456789:ABCdef...
 TELEGRAM_CHAT_ID=749526661
 ```
 
-> **Hard warning: use a dedicated bot token.** Telegram `getUpdates` can be consumed by only one process at a time. If you reuse a bot token already polled by another service (for example an existing notification bot or another skill poller), that service will consume the approval callbacks and the studio's poller will time out silently. Create a new bot in BotFather specifically for the studio.
+</details>
 
-### Manual test
+### Manual approval test (live API)
 
-Send a render manually, then start the poller in a second terminal:
+Send a render and poll for a button tap:
 
 ```bash
 # Terminal 1: send
@@ -166,20 +201,6 @@ python scripts/telegram_approval.py poll \
 ```
 
 Tap a button in Telegram. The poller prints the verdict JSON and exits.
-
-### Dry run (no API call)
-
-Verify the payload shape and keyboard layout without touching the API:
-
-```bash
-python scripts/telegram_approval.py send \
-  --piece brands/my-brand/proposed/albion-garland \
-  --image brands/my-brand/proposed/albion-garland/render-v1-tg.jpg \
-  --caption "Dry run test" \
-  --dry-run
-```
-
-The printed JSON shows the `inline_keyboard` array with three buttons and the `jds:<action>:<id>` callback_data shape.
 
 ---
 
