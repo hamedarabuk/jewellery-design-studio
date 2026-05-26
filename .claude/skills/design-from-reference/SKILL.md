@@ -71,7 +71,22 @@ Write `brief.md` using `templates/brief-template.md`. Fill:
 
 ### 5. Render the first iteration
 
-Generate the front view via gpt-image-2. Default settings:
+#### Provider routing
+
+Use **Nano Banana** (`scripts/nano_banana_client.py`) for all editorial on-model
+renders and photoreal product-close-up work. It produces accurate skin texture,
+fine fabric detail, and natural light behaviour that gpt-image-2 does not match
+for this content type.
+
+Use **gpt-image-2** (`scripts/gpt_image_client.py`) only for product-catalogue
+shots (piece isolated on plain background, no model) and any render where
+overlay text or typography must be legible.
+
+See `docs/luxury-studio-grammar.md` for the full reasoning and the seven prompt
+levers that govern quality.
+
+For the **front-view product render** (this step), gpt-image-2 remains the
+default because the reference is a product shot with no model:
 
 - `--action generate` (or `--action edit` with the reference image if explicit visual seeding is desired)
 - `--size 1536x2048` for pendants, brooches, earrings (portrait 3:4)
@@ -80,6 +95,10 @@ Generate the front view via gpt-image-2. Default settings:
 - `--quality high`
 - `--output brands/<brand_slug>/proposed/<piece_slug>/render-v1.png`
 - `--prompt`: detailed photoreal product-photography prompt referencing the brand foundation's render defaults (backdrop, lighting). Cite the specific motif, materials, and structural moves. Reference one or two of the foundation's reference houses for visual register.
+
+Assemble the prompt using `templates/on-model-prompt-template.md` as the
+starting point, filling in the six slots and keeping the locked grammar block
+verbatim.
 
 Build a Telegram-friendly JPEG preview at `<piece_slug>/render-v1-tg.jpg` via `python scripts/design_workflow.py preview --input render-v1.png --output render-v1-tg.jpg`.
 
@@ -133,13 +152,22 @@ When the user approves:
 - Copy the chosen front render to `render-front.png`.
 - Copy `reference.md` and `brief.md` across.
 - Update the brief.md "Status" line to APPROVED with the date. Append the "Locked decisions (in order applied)" section with the iteration audit trail.
-- Generate the on-model render via gpt-image-2 edit:
-  - `--action edit`
-  - `--reference brands/<brand_slug>/approved/<nn>-<piece_slug>/render-front.png`
-  - `--size 2400x3200` (portrait 3:4 max-res for editorial portrait crop)
-  - `--quality high`
-  - `--output brands/<brand_slug>/approved/<nn>-<piece_slug>/render-on-model.png`
-  - `--prompt`: a model-portrait prompt that preserves the design exactly (cite the reference image), specifies the model context (fair-skinned model in late thirties, cream silk top, soft natural daylight from upper left, three-quarter portrait angle), and includes any scale instructions if the piece is small (e.g. "delicate daily-wear pendant, ~18mm wide, refined scale, not statement-large").
+- Generate the on-model render via **Nano Banana** (editorial campaign quality).
+  Assemble the prompt using `templates/on-model-prompt-template.md`. Pass the
+  locked front render as a `--reference` so Nano Banana preserves the piece
+  appearance:
+
+  ```bash
+  python scripts/nano_banana_client.py --action generate \
+      --prompt "<assembled prompt from on-model-prompt-template.md>" \
+      --reference brands/<brand_slug>/approved/<nn>-<piece_slug>/render-front.png \
+      --aspect 4:5 \
+      --size 1280x1600 \
+      --output brands/<brand_slug>/approved/<nn>-<piece_slug>/render-on-model.png
+  ```
+
+  Include scale context in the prompt for small pieces (e.g. "delicate
+  daily-wear pendant, ~18mm wide, refined scale, not statement-large").
 - Write `manifest.json` via `templates/manifest-template.json` filled in with the locked spec, locked-variations audit, and considered-variations list.
 - Send the on-model preview to Telegram (or to the chat) with confirmation.
 - Update `brands/<brand_slug>/approved/INDEX.md`: append a row in the appropriate tier table with the piece number, name, format, retail, approval date, and generator used.

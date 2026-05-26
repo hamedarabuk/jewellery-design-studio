@@ -104,13 +104,28 @@ brands/<brand-slug>/
         └── render-on-model-tg.jpg
 ```
 
+## Image quality
+
+The quality bar for this repo is editorial campaign: Calvin Klein, Aesop, COS. Not jewellery catalogue.
+
+**Provider routing:**
+
+- **Nano Banana** (Google Gemini 3 Pro Image, `scripts/nano_banana_client.py`) is the primary generator for all editorial on-model renders and photoreal product-on-skin work. It produces accurate skin texture, fine fabric detail, hand anatomy, and natural light behaviour that gpt-image-2 does not match for this content type.
+- **gpt-image-2** (`scripts/gpt_image_client.py`) is reserved for product-catalogue shots (piece isolated on plain background, no model) and any render requiring legible overlay text.
+
+**Grammar reference:** `docs/luxury-studio-grammar.md` documents the seven prompt levers (subject framing, lens character, lighting, wardrobe/casting/skin, backdrop, post-grading, focal hierarchy) with worked before/after examples. Read it before writing any prompt.
+
+**Starting point for on-model renders:** `templates/on-model-prompt-template.md` provides a fill-in-the-slots template with the locked grammar block pre-included. Fill the six slots (subject, wardrobe, pose, piece, placement, backdrop) and run; do not delete the locked grammar.
+
+**GEMINI_API_KEY** must be set in `.env` to use Nano Banana. Add it alongside your `OPENAI_API_KEY`.
+
 ## Cost expectations
 
-Per approved piece (front + on-model + 1-2 iterations):
+Per approved piece (front product render + on-model + 1-2 iterations):
 
-- gpt-image-2 high quality at 1536x2048: ~$0.50 - $1.00 per render
-- On-model at 2400x3200: ~$1 - $2
-- Typical total per approved piece: **$2 - $4**
+- gpt-image-2 high quality at 1536x2048 (front render): ~$0.50 - $1.00 per render
+- Nano Banana at 4:5 1280x1600 (on-model): ~$0.04 per render
+- Typical total per approved piece: **$1 - $3**
 
 Per-session soft cap: $10 of render charges. The skill flags when you approach this.
 
