@@ -30,26 +30,28 @@ the locked grammar block.
 
 ## Assembly
 
-Concatenate slots and locked grammar into one paragraph, then send to Nano Banana:
+Concatenate slots and locked grammar into one paragraph, then send to gpt-image-2:
 
 ```bash
-python scripts/nano_banana_client.py --action generate \
+python scripts/gpt_image_client.py --action generate \
     --prompt "<assembled prompt>" \
-    --aspect 4:5 \
     --size 1280x1600 \
+    --quality high \
     --output brands/<slug>/proposed/<piece>/on-model.png
 ```
 
-For the approved on-model render (step 8 of the skill), pass the locked front render as a reference to preserve the piece's appearance:
+For the approved on-model render (step 8 of the skill), use the edit endpoint with the locked front render as the reference so gpt-image-2 preserves the piece's appearance:
 
 ```bash
-python scripts/nano_banana_client.py --action generate \
+python scripts/gpt_image_client.py --action edit \
     --prompt "<assembled prompt>" \
     --reference brands/<slug>/approved/<NN>-<piece>/render-front.png \
-    --aspect 4:5 \
     --size 1280x1600 \
+    --quality high \
     --output brands/<slug>/approved/<NN>-<piece>/render-on-model.png
 ```
+
+If gpt-image-2 misses on a tight hand shot (pore detail, fabric weave, anatomy) and a re-prompt does not recover, fall back to Nano Banana via `scripts/nano_banana_client.py` with the same prompt and reference. Document the reason in `brief.md`.
 
 ---
 
@@ -69,4 +71,4 @@ python scripts/nano_banana_client.py --action generate \
 4. Have I forbidden marble, flowers, satin, and props?
 5. Have I named the focal hierarchy (what is sharp, what is soft)?
 
-All five must be yes before submitting to Nano Banana.
+All five must be yes before submitting to gpt-image-2.

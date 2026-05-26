@@ -12,9 +12,9 @@ The quality bar is Calvin Klein / Aesop / COS campaign, not jewellery catalogue.
 
 ## 1. Provider routing
 
-Nano Banana (Gemini 3 Pro Image, `scripts/nano_banana_client.py`) is the primary provider for all editorial on-model jewellery work. It produces accurate real skin texture, fine fabric detail, hand anatomy, and natural light behaviour. Use it for every on-model ring shot, product close-up on skin, ambassador render, and photoreal scene.
+gpt-image-2 (OpenAI, `scripts/gpt_image_client.py`) is the primary provider for every render in this skill: front product, on-model, scene, ambassador, plus typography-heavy outputs (infographs, course cards, posters). Default to it. Apply the seven prompt levers below regardless of subject.
 
-gpt-image-2 (OpenAI, `scripts/gpt_image_client.py`) is primary only for typography-heavy outputs: infographs, course cards, social posts with overlay text, posters. It is not the right tool for editorial jewellery imagery.
+Nano Banana (Gemini 3 Pro Image, `scripts/nano_banana_client.py`) is a fallback. Reach for it only when a specific gpt-image-2 render misses on a measurable dimension (pore detail on a tight hand shot, fine fabric weave, hand anatomy fidelity) and a re-prompt does not recover. Document the reason in the piece's brief.md when you fall back.
 
 This extends the routing rule already documented in `workspace/silux/brand/visual-content-pipeline.md` under "Image-provider routing". That section governs cost and API; this doc governs craft. They are both required reading.
 

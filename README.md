@@ -110,22 +110,23 @@ The quality bar for this repo is editorial campaign: Calvin Klein, Aesop, COS. N
 
 **Provider routing:**
 
-- **Nano Banana** (Google Gemini 3 Pro Image, `scripts/nano_banana_client.py`) is the primary generator for all editorial on-model renders and photoreal product-on-skin work. It produces accurate skin texture, fine fabric detail, hand anatomy, and natural light behaviour that gpt-image-2 does not match for this content type.
-- **gpt-image-2** (`scripts/gpt_image_client.py`) is reserved for product-catalogue shots (piece isolated on plain background, no model) and any render requiring legible overlay text.
+- **gpt-image-2** (OpenAI, `scripts/gpt_image_client.py`) is the primary generator for every render in this skill: front product, on-model, scene, ambassador, plus any render with overlay typography. Apply the seven prompt levers from the grammar doc regardless of subject.
+- **Nano Banana** (Google Gemini 3 Pro Image, `scripts/nano_banana_client.py`) is a fallback. Reach for it only when a specific gpt-image-2 render misses on a measurable dimension (pore detail on a tight hand shot, fine fabric weave, hand anatomy fidelity) and a re-prompt does not recover. Document the reason in `brief.md` when you fall back.
 
 **Grammar reference:** `docs/luxury-studio-grammar.md` documents the seven prompt levers (subject framing, lens character, lighting, wardrobe/casting/skin, backdrop, post-grading, focal hierarchy) with worked before/after examples. Read it before writing any prompt.
 
 **Starting point for on-model renders:** `templates/on-model-prompt-template.md` provides a fill-in-the-slots template with the locked grammar block pre-included. Fill the six slots (subject, wardrobe, pose, piece, placement, backdrop) and run; do not delete the locked grammar.
 
-**GEMINI_API_KEY** must be set in `.env` to use Nano Banana. Add it alongside your `OPENAI_API_KEY`.
+**OPENAI_API_KEY** is required. Set **GEMINI_API_KEY** in `.env` only if you plan to use the Nano Banana fallback.
 
 ## Cost expectations
 
 Per approved piece (front product render + on-model + 1-2 iterations):
 
 - gpt-image-2 high quality at 1536x2048 (front render): ~$0.50 - $1.00 per render
-- Nano Banana at 4:5 1280x1600 (on-model): ~$0.04 per render
-- Typical total per approved piece: **$1 - $3**
+- gpt-image-2 high quality at 1280x1600 (on-model edit): ~$0.40 - $0.80 per render
+- Nano Banana at 4:5 1280x1600 (fallback only): ~$0.04 per render
+- Typical total per approved piece: **$2 - $5**
 
 Per-session soft cap: $10 of render charges. The skill flags when you approach this.
 

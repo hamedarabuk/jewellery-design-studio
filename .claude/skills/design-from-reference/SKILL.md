@@ -73,20 +73,16 @@ Write `brief.md` using `templates/brief-template.md`. Fill:
 
 #### Provider routing
 
-Use **Nano Banana** (`scripts/nano_banana_client.py`) for all editorial on-model
-renders and photoreal product-close-up work. It produces accurate skin texture,
-fine fabric detail, and natural light behaviour that gpt-image-2 does not match
-for this content type.
+Use **gpt-image-2** (`scripts/gpt_image_client.py`) as the default for every
+render in this skill: front product, on-model, scene, ambassador. Apply the
+seven prompt levers from `docs/luxury-studio-grammar.md` regardless of subject.
 
-Use **gpt-image-2** (`scripts/gpt_image_client.py`) only for product-catalogue
-shots (piece isolated on plain background, no model) and any render where
-overlay text or typography must be legible.
+Reach for **Nano Banana** (`scripts/nano_banana_client.py`) as a fallback only
+when a specific gpt-image-2 render misses on a measurable dimension (pore
+detail on a tight hand shot, fine fabric weave, hand anatomy) and a re-prompt
+does not recover. Document the reason in `brief.md` when you fall back.
 
-See `docs/luxury-studio-grammar.md` for the full reasoning and the seven prompt
-levers that govern quality.
-
-For the **front-view product render** (this step), gpt-image-2 remains the
-default because the reference is a product shot with no model:
+For the **front-view product render** (this step):
 
 - `--action generate` (or `--action edit` with the reference image if explicit visual seeding is desired)
 - `--size 1536x2048` for pendants, brooches, earrings (portrait 3:4)
@@ -152,22 +148,25 @@ When the user approves:
 - Copy the chosen front render to `render-front.png`.
 - Copy `reference.md` and `brief.md` across.
 - Update the brief.md "Status" line to APPROVED with the date. Append the "Locked decisions (in order applied)" section with the iteration audit trail.
-- Generate the on-model render via **Nano Banana** (editorial campaign quality).
-  Assemble the prompt using `templates/on-model-prompt-template.md`. Pass the
-  locked front render as a `--reference` so Nano Banana preserves the piece
-  appearance:
+- Generate the on-model render via **gpt-image-2** (editorial campaign quality).
+  Assemble the prompt using `templates/on-model-prompt-template.md`. Use the
+  edit endpoint with the locked front render as the reference so gpt-image-2
+  preserves the piece appearance:
 
   ```bash
-  python scripts/nano_banana_client.py --action generate \
+  python scripts/gpt_image_client.py --action edit \
       --prompt "<assembled prompt from on-model-prompt-template.md>" \
       --reference brands/<brand_slug>/approved/<nn>-<piece_slug>/render-front.png \
-      --aspect 4:5 \
       --size 1280x1600 \
+      --quality high \
       --output brands/<brand_slug>/approved/<nn>-<piece_slug>/render-on-model.png
   ```
 
   Include scale context in the prompt for small pieces (e.g. "delicate
-  daily-wear pendant, ~18mm wide, refined scale, not statement-large").
+  daily-wear pendant, ~18mm wide, refined scale, not statement-large"). If
+  gpt-image-2 misses on hand anatomy or pore detail and a re-prompt does not
+  recover, fall back to Nano Banana (`scripts/nano_banana_client.py`) with the
+  same prompt and reference; note the reason in `brief.md`.
 - Write `manifest.json` via `templates/manifest-template.json` filled in with the locked spec, locked-variations audit, and considered-variations list.
 - Send the on-model preview to Telegram (or to the chat) with confirmation.
 - Update `brands/<brand_slug>/approved/INDEX.md`: append a row in the appropriate tier table with the piece number, name, format, retail, approval date, and generator used.
