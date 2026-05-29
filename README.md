@@ -84,6 +84,10 @@ Once a piece is approved, send the next reference image. The skill writes the ne
 ```
 brands/<brand-slug>/
 ├── foundation.md                       # your brand identity (gitignored)
+├── brand.json                          # optional structured mirror of foundation
+├── subjects/                           # optional: named ambassadors (locked faces)
+│   └── <ambassador>/                   #   master.png + angle/hand refs + PROFILE.md
+├── collections/                        # optional: <collection>.json (motifs, palette)
 ├── proposed/                           # iteration working folder
 │   └── <piece-slug>/
 │       ├── reference-source.png        # the reference you sent
@@ -103,6 +107,20 @@ brands/<brand-slug>/
         ├── render-on-model.png         # editorial portrait
         └── render-on-model-tg.jpg
 ```
+
+## Ambassadors and collections (optional per-brand enrichment)
+
+A brand can carry two optional folders that make the skill richer. Both live under the gitignored `brands/<slug>/`, so they stay private to your clone.
+
+**Ambassadors (`subjects/`):** named models with a locked likeness. Each `subjects/<id>/` holds a `master.png` (the likeness reference), angle and hand references, and a `PROFILE.md` (casting: age, features, wardrobe, the styles they suit). When a brand has a roster, the on-model step uses a named ambassador for a consistent face across the whole catalogue, rather than a fresh generic model each time. With no roster, the skill falls back to a generic model from the foundation. Build a roster by generating a master per ambassador, then each angle from that master (the star pattern: every angle references the master, never a chain of generations).
+
+**Collections (`collections/`):** structured `<id>.json` files (motifs, palette, signature pieces, design notes). Name a collection when designing and its language flows into the brief and the render prompt, so the piece sits inside that collection's world. Optional; the default designs against the foundation alone.
+
+**Shared styles (`styles/`):** photography registers (studio editorial, documentary portrait, product catalogue) that any brand uses. These ship with the skill, unlike per-brand data.
+
+## Source of truth and sync
+
+The maintainer keeps the canonical grammar, styles, ambassadors, and collections in one place and syncs them into this repo with `python scripts/sync_from_source.py` (`--dry-run` to preview). The `styles/` and `docs/` content ships; per-brand data refreshes the local clone only, because `brands/` is gitignored. If you are cloning this skill for your own brand, ignore the sync and populate your own `brands/<slug>/` via `brand-init` plus the optional folders above.
 
 ## Image quality
 

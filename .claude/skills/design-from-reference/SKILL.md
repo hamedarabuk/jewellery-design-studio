@@ -31,6 +31,7 @@ Required:
 Optional:
 
 - `tier`: "high-jewellery" or "commercial" or "signature". Reads the brand foundation for which bands apply. If absent, infer from the reference image (typical signal: pavé density, multi-cut complexity, scale on model).
+- `collection`: the id of a collection to design within (e.g. `firouzeh`). Only available if the brand has a `collections/` folder. If named, the skill loads that collection's JSON and weaves its motifs, palette, and design notes into the design. Default: none (design against the brand foundation only).
 - `category`: ring, pendant, brooch, earrings, bracelet, necklace. Inferred from the reference if absent.
 - `piece_slug`: override the generated slug. Default: ask the user for a piece name after proposing one in step 4.
 
@@ -41,6 +42,18 @@ Optional:
 - Verify the brand foundation exists. If not, stop and instruct the user to run `brand-init`.
 - Read `brands/<brand_slug>/foundation.md` into context. Especially: stone palette (allowed, banned), metal palette, naming convention, cultural anchor, IP-safe transformation rule, render defaults, reference and anti-reference houses.
 - Determine the next piece slug. If the user has not supplied one, defer slug assignment until after step 4 (where the piece is named).
+
+### 1b. Collection-awareness (optional)
+
+Skip this step if the brand has no `brands/<brand_slug>/collections/` folder, or if the user named no collection. The default is no collection (design against the foundation only).
+
+- If `brands/<brand_slug>/collections/` exists, list the available collections (read each `<id>.json` for its `name` and `tagline`) and let the user name one, e.g. "collection=firouzeh". If the user has already supplied `collection`, use it.
+- Load only that one collection JSON. Read its `motifs`, `palette` (hero, supporting, accents, finishes), `signature_pieces`, and `design_notes`.
+- Carry the collection forward into the rest of the flow:
+  - In step 3 (reference DNA analysis), weave the collection's motifs and palette into "What I will take" and especially "Cultural anchor for the derived piece": the derived piece should sit inside the named collection's world.
+  - In step 4 (brief), name the collection in the brief and let its signature pieces and design notes shape the silhouette and stone arrangement.
+  - In step 5 (render prompt), cite the collection's hero stone, supporting metal, accents, and finishes, plus one or two of its motifs.
+- A named collection narrows the palette but never overrides the foundation's banned stones or IP-safe transformation rule. Those still apply.
 
 ### 2. Save the reference image
 
@@ -77,10 +90,24 @@ Use **gpt-image-2** (`scripts/gpt_image_client.py`) as the default for every
 render in this skill: front product, on-model, scene, ambassador. Apply the
 seven prompt levers from `docs/luxury-studio-grammar.md` regardless of subject.
 
-Reach for **Nano Banana** (`scripts/nano_banana_client.py`) as a fallback only
-when a specific gpt-image-2 render misses on a measurable dimension (pore
-detail on a tight hand shot, fine fabric weave, hand anatomy) and a re-prompt
-does not recover. Document the reason in `brief.md` when you fall back.
+Reach for **Nano Banana** (`scripts/nano_banana_client.py`) as the fallback in
+two cases, with the same prompt and reference, noting the reason in `brief.md`:
+
+1. **Moderation block or billing error.** If gpt-image-2 returns
+   `moderation_blocked` / `safety_violations` or a billing/quota error, retry
+   the same prompt on Nano Banana. Keep wording moderation-safe to avoid the
+   block in the first place: prefer "elegant neckline" over "decolletage", and
+   avoid "flawless dewy" (use "luminous" or "natural glow"). On-model prompts
+   on people trip the filter more often than product shots, so this matters most
+   at step 8.
+2. **Measurable miss.** When a specific gpt-image-2 render misses on a
+   measurable dimension (pore detail on a tight hand shot, fine fabric weave,
+   hand anatomy) and a re-prompt does not recover.
+
+**Batching angles.** When generating several angles or variations in one shell
+line, chain the commands with `;` not `&&`. With `&&` a single moderation block
+aborts the whole batch; with `;` each render runs independently and one block
+does not lose the others.
 
 For the **front-view product render** (this step):
 
@@ -149,9 +176,44 @@ When the user approves:
 - Copy `reference.md` and `brief.md` across.
 - Update the brief.md "Status" line to APPROVED with the date. Append the "Locked decisions (in order applied)" section with the iteration audit trail.
 - Generate the on-model render via **gpt-image-2** (editorial campaign quality).
-  Assemble the prompt using `templates/on-model-prompt-template.md`. Use the
-  edit endpoint with the locked front render as the reference so gpt-image-2
-  preserves the piece appearance:
+  Assemble the prompt using `templates/on-model-prompt-template.md` and the
+  chosen `styles/<style>.md` grammar (default `styles/studio-editorial.md`).
+
+  **Named ambassador (preferred when the brand has a roster).** If
+  `brands/<brand_slug>/subjects/` exists, use a named ambassador instead of a
+  generic model description:
+
+  - List the available ambassadors (read each `subjects/<id>/PROFILE.md` for
+    name, role, and age band) and let the user pick, or pick the fitting one by
+    register:
+    - a **glamorous hero** for launches and campaign heroes,
+    - a **persona-true buyer** for everyday and core-buyer imagery (the default
+      face),
+    - a **prestige / heirloom** ambassador for top-tier and bespoke pieces.
+  - Pull the casting (hair, skin, makeup, mood, wardrobe defaults) from that
+    ambassador's `PROFILE.md` and use it to fill the `{{SUBJECT_DESCRIPTION}}`
+    and `{{WARDROBE}}` slots of the template, rather than a generic description.
+  - Pass two references to the edit endpoint: the ambassador's
+    `subjects/<id>/master.png` for the likeness and the locked
+    `render-front.png` for the piece. For a ring or bracelet shot, use the
+    ambassador's `subjects/<id>/hand-empty.png` as the likeness reference
+    instead of `master.png`, and add the piece onto the hand via the edit
+    prompt.
+
+  ```bash
+  # Named-ambassador on-model render (likeness + piece references):
+  python scripts/gpt_image_client.py --action edit \
+      --prompt "<assembled prompt: ambassador casting from PROFILE.md + piece + style grammar>" \
+      --reference brands/<brand_slug>/subjects/<ambassador>/master.png \
+      --reference brands/<brand_slug>/approved/<nn>-<piece_slug>/render-front.png \
+      --size 1280x1600 \
+      --quality high \
+      --output brands/<brand_slug>/approved/<nn>-<piece_slug>/render-on-model.png
+  ```
+
+  **No roster (generic model).** If the brand has no `subjects/` folder, use the
+  edit endpoint with the locked front render as the only reference and describe
+  the model from the foundation's "On-model context":
 
   ```bash
   python scripts/gpt_image_client.py --action edit \
@@ -163,10 +225,13 @@ When the user approves:
   ```
 
   Include scale context in the prompt for small pieces (e.g. "delicate
-  daily-wear pendant, ~18mm wide, refined scale, not statement-large"). If
-  gpt-image-2 misses on hand anatomy or pore detail and a re-prompt does not
-  recover, fall back to Nano Banana (`scripts/nano_banana_client.py`) with the
-  same prompt and reference; note the reason in `brief.md`.
+  daily-wear pendant, ~18mm wide, refined scale, not statement-large"). Keep the
+  wording moderation-safe: prefer "elegant neckline" over "decolletage", and
+  avoid "flawless dewy". If gpt-image-2 returns `moderation_blocked` /
+  `safety_violations` or a billing error, or misses on hand anatomy or pore
+  detail and a re-prompt does not recover, fall back to Nano Banana
+  (`scripts/nano_banana_client.py`) with the same prompt and references; note
+  the reason in `brief.md`.
 - Write `manifest.json` via `templates/manifest-template.json` filled in with the locked spec, locked-variations audit, and considered-variations list.
 - Send the on-model preview to Telegram (or to the chat) with confirmation.
 - Update `brands/<brand_slug>/approved/INDEX.md`: append a row in the appropriate tier table with the piece number, name, format, retail, approval date, and generator used.
